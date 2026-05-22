@@ -48,10 +48,6 @@ public:
     
     Eigen::Vector3d foot_pos(const Eigen::Vector3d& joint_rad);
 
-    void set_joint_pd(int index,double kp,double kd);
-
-    void get_joint_pd(int index,double &kp,double &kd);
-
 private:
 
     Eigen::Vector3d joint_acc(const Eigen::Vector3d &joint_rad, const Eigen::Vector3d &joint_vel,Eigen::Vector3d foot_acc);

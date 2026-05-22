@@ -1,6 +1,7 @@
 #pragma once
 
 #include "leg_calc.hpp"
+#include "cdc_trans.hpp"
 
 #include <Eigen/Dense>
 #include <Eigen/src/Core/Matrix.h>
@@ -24,20 +25,29 @@
 #include <tf2_ros/transform_broadcaster.h>
 
 #include <map>
+#include <array>
+#include <thread>
 #include <vector>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
+#include "data_pack.h"
 
-#define driver true
-#define sim    false
 
 class Estimater;
 
 class Robot {
 public:
+    struct QuinticTrajectory3D {
+        std::array<LegStep::QuinticLineParam_t, 3> axis;
+        double duration{0.0};
+        bool active{false};
+    };
+
     Robot(const std::shared_ptr<rclcpp::Node> node);
     ~Robot();
+
+    void arm_control();
 
     // ROS2通信相关话题
     rclcpp::Node::SharedPtr node_;
@@ -60,4 +70,32 @@ public:
 
     //数据缓存
     Eigen::Vector3d arm_joint_pos,arm_joint_vel;
+
+    std::unique_ptr<CDCTrans> cdc_trans;    //CDC传输类
+    std::unique_ptr<std::thread> usb_event_handle_thread;
+    bool exit_cdc_thread{false};
+
+    Eigen::Vector3d final_target_pos;
+    Eigen::Vector3d final_target_rad;
+
+private:
+    void sync_targets_from_parameters();
+    void start_cartesian_motion(double execute_time);
+    void start_joint_motion(double execute_time);
+    void stop_cartesian_motion();
+    void stop_joint_motion();
+
+    QuinticTrajectory3D cartesian_traj_;
+    QuinticTrajectory3D joint_traj_;
+    std::chrono::steady_clock::time_point cartesian_start_time_;
+    std::chrono::steady_clock::time_point joint_start_time_;
+    bool cartesian_executing_{false};
+    bool joint_executing_{false};
+    bool last_cart_trigger_{false};
+    bool last_joint_trigger_{false};
+
+public:
+
+    bool first_run{true};
+    int state{0};
 };

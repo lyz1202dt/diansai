@@ -40,7 +40,7 @@ endif()
 add_executable(move_control
 src/main.cpp
 src/robot.cpp
-src/robot.cpp
+src/cdc_trans.cpp
 src/leg_calc.cpp
 src/step.cpp
 )
@@ -58,9 +58,7 @@ $<INSTALL_INTERFACE:include>
 )
 
 
-target_link_libraries(${PROJECT_NAME} ${leg_driver_LIBRARIES})
-
-target_link_libraries(move_control Eigen3::Eigen ${qpOASES_LIBRARY})
+target_link_libraries(move_control Eigen3::Eigen usb-1.0)
 
 ament_target_dependencies(
   move_control
