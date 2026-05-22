@@ -24,7 +24,7 @@ def generate_launch_description():
     )
 
     rviz2_config_path=os.path.join(
-        get_package_share_directory("launch_pack"),
+        get_package_share_directory("arm"),
         "rviz", "display_config.rviz"
     )
 
