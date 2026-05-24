@@ -96,6 +96,8 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node) {
 
     final_target_pos.setZero();
     final_target_rad.setZero();
+    arm_joint_pos.setZero();
+    arm_joint_vel.setZero();
 
     node->declare_parameter<double>("target_x", 0.1);
     node->declare_parameter<double>("target_y", 0.0);
@@ -227,6 +229,9 @@ void Robot::start_cartesian_motion(double execute_time)
         return;
     }
 
+    const Eigen::Vector3d ik_seed = has_last_planned_terminal_joint_ ? last_planned_terminal_joint_ : arm_joint_pos;
+    arm_calc->set_init_joint_pos(ik_seed);
+
     const Eigen::Vector3d cur_pos = arm_calc->foot_pos(arm_joint_pos);
     const Eigen::Vector3d cur_vel = arm_calc->foot_vel(arm_joint_pos, arm_joint_vel);
 
@@ -244,6 +249,13 @@ void Robot::start_cartesian_motion(double execute_time)
         final_target_pos[1],
         final_target_pos[2],
         execute_time);
+
+    RCLCPP_INFO(
+        node_->get_logger(),
+        "笛卡尔轨迹IK初值: seed=[%.3f, %.3f, %.3f]",
+        ik_seed[0],
+        ik_seed[1],
+        ik_seed[2]);
 }
 
 void Robot::start_joint_motion(double execute_time)
@@ -251,6 +263,8 @@ void Robot::start_joint_motion(double execute_time)
     joint_traj_ = plan_quintic_trajectory(arm_joint_pos, arm_joint_vel, final_target_rad, Eigen::Vector3d::Zero(), execute_time);
     joint_start_time_ = std::chrono::steady_clock::now();
     joint_executing_ = true;
+    last_planned_terminal_joint_ = final_target_rad;
+    has_last_planned_terminal_joint_ = true;
 
     RCLCPP_INFO(
         node_->get_logger(),
@@ -283,7 +297,10 @@ void Robot::stop_joint_motion()
 void Robot::arm_control()
 {
     if (first_run) {
-        arm_calc->set_init_joint_pos({0.0, -0.5, 1.7});
+        const Eigen::Vector3d default_init_joint_pos(0.0, -0.5, 1.7);
+        arm_calc->set_init_joint_pos(default_init_joint_pos);
+        last_planned_terminal_joint_ = default_init_joint_pos;
+        has_last_planned_terminal_joint_ = true;
         first_run = false;
     }
 
@@ -329,6 +346,8 @@ void Robot::arm_control()
         } else {
             desired_joint_vel = arm_calc->joint_vel(desired_joint_pos, cart_vel);
             if (elapsed >= cartesian_traj_.duration) {
+                last_planned_terminal_joint_ = desired_joint_pos;
+                has_last_planned_terminal_joint_ = true;
                 stop_cartesian_motion();
             }
         }

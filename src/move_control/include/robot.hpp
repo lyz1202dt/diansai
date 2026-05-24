@@ -93,6 +93,8 @@ private:
     bool joint_executing_{false};
     bool last_cart_trigger_{false};
     bool last_joint_trigger_{false};
+    Eigen::Vector3d last_planned_terminal_joint_{Eigen::Vector3d::Zero()};
+    bool has_last_planned_terminal_joint_{false};
 
 public:
 
