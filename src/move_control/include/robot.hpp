@@ -84,6 +84,7 @@ private:
     void start_joint_motion(double execute_time);
     void stop_cartesian_motion();
     void stop_joint_motion();
+    void log_current_end_effector_pos();
 
     QuinticTrajectory3D cartesian_traj_;
     QuinticTrajectory3D joint_traj_;
@@ -100,4 +101,5 @@ public:
 
     bool first_run{true};
     int state{0};
+    rclcpp::TimerBase::SharedPtr end_effector_log_timer;
 };

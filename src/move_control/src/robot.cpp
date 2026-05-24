@@ -173,6 +173,10 @@ Robot::Robot(const std::shared_ptr<rclcpp::Node> node) {
         rviz_joint_publisher->publish(joint_display_msg);
     });
 
+    end_effector_log_timer = node_->create_wall_timer(100ms, [this]() {
+        log_current_end_effector_pos();
+    });
+
     cdc_trans = std::make_unique<CDCTrans>();
     cdc_trans->regeiser_recv_cb([this](const uint8_t* data, int size) {
         if (data == nullptr || size != static_cast<int>(sizeof(StatePackage))) {
@@ -372,4 +376,19 @@ void Robot::arm_control()
         pack.joint[i].vel = static_cast<float>(desired_joint_vel[i]);
     }
     cdc_trans->send_struct(pack);
+}
+
+void Robot::log_current_end_effector_pos()
+{
+    if (exit_cdc_thread || !arm_calc) {
+        return;
+    }
+
+    const Eigen::Vector3d end_effector_pos = arm_calc->foot_pos(arm_joint_pos);
+    RCLCPP_INFO(
+        node_->get_logger(),
+        "当前机械臂末端位置: x=%.4f, y=%.4f, z=%.4f",
+        end_effector_pos[0],
+        end_effector_pos[1],
+        end_effector_pos[2]);
 }
